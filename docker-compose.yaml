@@ -52,4 +52,4 @@ services:
       - ./.env
     volumes:
       - ./jupyter:/home/jovyan/work
-    command: bash -c "python /home/jovyan/work/setup/generate_mock_data.py && python /home/jovyan/work/setup/run_ddl.py && python /home/jovyan/work/ETL/pipeline.py && start-notebook.py --NotebookApp.token='my-token'"
+    command: bash -c "python /home/jovyan/work/setup/generate_mock_data.py && python /home/jovyan/work/setup/run_ddl.py && python /home/jovyan/work/ETL/pipeline.py && start-notebook.py --NotebookApp.token=$(JUPYTER_TOKEN)"
