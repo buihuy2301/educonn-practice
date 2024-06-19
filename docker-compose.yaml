@@ -1,0 +1,55 @@
+version: '3.7'
+
+services:
+  minio:
+    image: minio/minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    # volumes:
+    #   - ./data/minio:/data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    command: server --console-address ":9001" /data
+
+  createbuckets:
+    image: minio/mc
+    depends_on:
+      - minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set myminio http://minio:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD;
+      /usr/bin/mc mb myminio/landing-zone;
+      exit 0;
+      "
+
+  postgres:
+    image: postgres
+    ports:
+      - "5432:5432"
+    # volumes:
+    #    - ./data/postgres:/data 
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DATABASE}
+      PGDATA: /data/postgres
+    restart: unless-stopped
+
+  jupyter:
+    build:
+      context: .
+    depends_on:
+      - minio
+      - postgres
+    ports:
+      - 8889:8888
+    env_file:
+      - ./.env
+    volumes:
+      - ./jupyter:/home/jovyan/work
+    command: bash -c "python /home/jovyan/work/setup/generate_mock_data.py && python /home/jovyan/work/setup/run_ddl.py && python /home/jovyan/work/ETL/pipeline.py && start-notebook.py --NotebookApp.token='my-token'"
